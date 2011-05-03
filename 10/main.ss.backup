@@ -1,0 +1,14 @@
+(load "env.ss")
+(load "parser.ss")
+(load "interpreter.ss")
+
+(define (rl) (load "main.ss"))
+
+(define (rep)
+  (begin
+    (display "--> ")
+    (let ([foo (read)])
+      (if (not (equal? foo '(exit)))
+	  (begin (write (interpret foo))
+		 (newline)
+		 (rep))))))
