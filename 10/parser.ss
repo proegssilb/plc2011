@@ -109,14 +109,14 @@
    (values (list-of expression?))
    (bodies (list-of expression?)))
   (letrec-exp
-    (proc-names (list-of symbol?))
-    (params (list-of (list-of symbol?)))
-    (values (list-of (list-of expression?)))
-    (bodies (list-of expression?)))
+    (params (list-of symbol?))
+	(values (list-of expression?))
+	(bodies (list-of expression?)))
   (named-let-exp
    (name symbol?)
-   (defs defs-list?)
-   (body (list-of expression?)))
+   (params (list-of symbol?))
+   (values (list-of expression?))
+   (bodies (list-of expression?)))
   (set-exp
    (var symbol?)
    (val expression?))
@@ -267,8 +267,8 @@
                     (if (null? (cdddr datum))
                         (eopl:error 'parse-expression "Invalid let structure ~s" datum)
                         (if (good-let? (caddr datum))
-                            (named-let-exp (cadr datum) (make-let-vars (caddr datum)) 
-                              (make-let-vals (caddr datum)) (parse-list (cdddr datum)))
+                            (syntax-expand (named-let-exp (cadr datum) (make-let-vars (caddr datum)) 
+                              (make-let-vals (caddr datum)) (parse-list (cdddr datum))))
                             (eopl:error 'parse-expression "Bad named-let expression ~s" datum)))
                     (if (good-let? (cadr datum))
                         (syntax-expand (let-exp (make-let-vars (cadr datum)) (make-let-vals (cadr datum)) (parse-list (cddr datum))))
@@ -283,8 +283,9 @@
           (if (or (null? (cdr datum)) (null? (cddr datum)))
               (eopl:error 'parse-expression "Invalid letrec structure ~s" datum)
               (if (good-let? (cadr datum))
-                  (let ((bodies (make-letrec-vals (cadr datum))))
-                    (letrec-exp (make-let-vars (cadr datum)) (map cadadr (cadr datum)) bodies (parse-list (cddr datum))))
+			    (letrec-exp (make-let-vars (cadr datum)) (make-let-vals (cadr datum)) (parse-list (cddr datum)))
+                  ;(let ((bodies (make-letrec-vals (cadr datum))))
+                  ;  (letrec-exp (make-let-vars (cadr datum)) (map cadadr (cadr datum)) bodies (parse-list (cddr datum))))
                   (eopl:error 'parse-expression "Bad letrec expression ~s" datum))))
 				  
 				  

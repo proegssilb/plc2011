@@ -4,6 +4,7 @@
     (cases expression exp
 	  [let-exp (syms exps bodies) (let->application syms exps bodies)]
 	  [let*-exp (params values bodies) (let*->application params values bodies)]
+	  [named-let-exp (name params values bodies) (named-let->letrec name params values bodies)]
 	  [cond-exp (test then) (cond->if test then)]
 	  [and-exp (tests) exp]
 	  [or-exp (tests) exp]
@@ -16,6 +17,15 @@
   (lambda (vars exps bodies)
     (app-exp (lambda-exp-args (mk-var-list vars) bodies) exps)
     ))
+	
+(define named-let->letrec
+  (lambda (name params values bodies)
+    (letrec-exp (list name) (list (lambda-exp-args params bodies)) (list (app-exp (var-exp name) values)))))
+    ;(set-exp name (app-exp (lambda-exp-args params bodies) values))))
+	;(let-exp (list name) (lambda-exp-args params bodies) (app-exp (var-exp name) values))))
+	
+	
+
 
 ;(define let*->let
 ;  (lambda (params values bodies)
