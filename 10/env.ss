@@ -137,6 +137,21 @@
 		(vector-ref vals pos)
 		(apply-env env sym)))))))
 
+(define update-env
+  (lambda (env sym val)
+    (if (null? env)
+	(eopl:error 'update-env "No binding for ~s" sym)
+	(let ([syms (caar env)]
+	      [vals (cdar env)]
+	      [env (cdr env)])
+	  (let ([pos (find-position sym syms)])
+	    (if (number? pos)
+		(vector-set! vals val)
+		(update-env env sym val)
+		))
+	  ))
+    ))
+
 (define find-position
   (lambda (sym ls)
     (cond [(null? ls) #f]
