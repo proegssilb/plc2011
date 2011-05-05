@@ -140,13 +140,13 @@
 (define update-env
   (lambda (env sym val)
     (if (null? env)
-	(eopl:error 'update-env "No binding for ~s" sym)
+	#f
 	(let ([syms (caar env)]
 	      [vals (cdar env)]
 	      [env (cdr env)])
 	  (let ([pos (find-position sym syms)])
 	    (if (number? pos)
-		(vector-set! vals val)
+		(begin (vector-set! vals pos val) #t)
 		(update-env env sym val)
 		))
 	  ))

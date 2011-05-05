@@ -28,7 +28,8 @@
 		  [let*-exp (params values bodies) '()]
 		  [letrec-exp (proc-names params values bodies) '()]
 		  [named-let-exp (name defs body) '()]
-		  [set-exp (var val) '()]
+		  [set-exp (var val) (if (not (update-env sym val))
+					 (global-set-var var val))]
 		  [begin-exp (exps)
 			     (cases exp-list exps
 				    [null-exp-node () '()]
