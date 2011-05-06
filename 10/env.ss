@@ -1,4 +1,5 @@
 (load "chez-init.ss")
+(load "parser.ss")
 
 ;;; Rib cage implementation using:
 ;;; A list of symbols and
@@ -21,8 +22,11 @@
 	  [(reference? (car syms))
 	   (let ([sym (refTarget (car syms))]
 		 [val (env-reference (car vals) ref-env)])
-	     (cons sym (transform-refs (cdr syms) (cdr vals) ref-env))
-	  [else ])
+	     (cons sym (transform-refs (cdr syms) (cdr vals) ref-env)))]
+	  [else 
+	   (let ([sym (car syms)]
+		 [val (car vals)])
+	     (cons sym (transform-refs-syms (cdr syms) (cdr vals) ref-env)))])
     ))
 
 (define transform-refs-vals
@@ -32,8 +36,11 @@
 	  [(reference? (car syms))
 	   (let ([sym (refTarget (car syms))]
 		 [val (env-reference (car vals) ref-env)])
-	     (cons val (transform-refs (cdr syms) (cdr vals) ref-env))
-	  [else ])
+	     (cons val (transform-refs (cdr syms) (cdr vals) ref-env)))]
+	  [else 
+	   (let ([sym (car syms)]
+		 [val (car vals)])
+	     (cons sym (transform-refs-vals (cdr syms) (cdr vals) ref-env)))])
     ))
 
 (define refTarget
@@ -48,9 +55,10 @@
   (lambda (syms vals env)
     (let ([vals (list->vector vals)])
       (cons (cons 
-	     (transform-refs-syms syms vals env)
-	     (transform-refs-vals syms vals env))
-	    ) env)))
+	     (transform-refs-syms syms (vector->list vals) env)
+	     (list->vector (transform-refs-vals syms (vector->list vals) env)))
+	    env))
+    ))
 
 ;(define extend-env
 ;  (lambda (syms vals env)
@@ -164,6 +172,7 @@
    append
    set-car!
    max
+   list
    ))
 
 (define init-env-vals
@@ -222,4 +231,5 @@
    append
    set-car!
    max
+   list
    ))

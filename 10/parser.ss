@@ -44,11 +44,11 @@
 (define mk-lambda-var-list
   (lambda (vars)
     (map (lambda (v) 
-	   (if (symbol? v) 
-	       v
-	       (reference v)
+	   (cond [(symbol? v) v]
+		 [(reference? v) v]
+		 [else (ref v)]))
 	 vars)
-    ))    
+    ))
 
 (define (var-list->list vars) vars)
 
@@ -279,13 +279,13 @@
 			     (eopl:error 'parse-expression "Bad named-let expression ~s" datum)))
 		     (if (good-let? (cadr datum))
 			 (syntax-expand (let-exp (make-let-vars (cadr datum)) (make-let-vals (cadr datum)) (parse-list (cddr datum))))
-			 (eopl:error 'parse-expression "Bad let expression ~s" datum)))))
+			 (eopl:error 'parse-expression "Bad let expression ~s" datum))))]
 	    [(eqv? (car datum) 'let*)
 	     (if (or (null? (cdr datum)) (null? (cddr datum)))
 		 (eopl:error 'parse-expression "Invalid let* structure ~s" datum)
 		 (if (good-let? (cadr datum))
 		     (syntax-expand (let*-exp (make-let-vars (cadr datum)) (make-let-vals (cadr datum)) (parse-list (cddr datum))))
-		     (eopl:error 'parse-expression "Invalid let* structure ~s" datum))))
+		     (eopl:error 'parse-expression "Invalid let* structure ~s" datum)))]
 	    [(eqv? (car datum) 'letrec)
 	     (if (or (null? (cdr datum)) (null? (cddr datum)))
 		 (eopl:error 'parse-expression "Invalid letrec structure ~s" datum)
@@ -293,7 +293,7 @@
 		     (letrec-exp (make-let-vars (cadr datum)) (make-let-vals (cadr datum)) (parse-list (cddr datum)))
 					;(let ((bodies (make-letrec-vals (cadr datum))))
 					;  (letrec-exp (make-let-vars (cadr datum)) (map cadadr (cadr datum)) bodies (parse-list (cddr datum))))
-		     (eopl:error 'parse-expression "Bad letrec expression ~s" datum))))
+		     (eopl:error 'parse-expression "Bad letrec expression ~s" datum)))]
 	    
 	    
 	    [(eqv? (car datum) 'begin) (begin-exp (mk-exp-list (cdr datum)))]

@@ -26,9 +26,9 @@
 			       (eval-if-else condition t-case f-case env)]
 		  [let-exp (syms exps bodies) '()]
 		  [let*-exp (params values bodies) '()]
-		  [letrec-exp (proc-names params values bodies) '()]
-		  [named-let-exp (name defs body) '()]
-		  [set-exp (var val) (if (not (update-env sym val))
+		  ;[letrec-exp (proc-names params values bodies) '()]
+		  ;[named-let-exp (name defs body) '()]
+		  [set-exp (var val) (if (not (update-env env sym val))
 					 (global-set-var var val))]
 		  [begin-exp (exps)
 			     (cases exp-list exps
