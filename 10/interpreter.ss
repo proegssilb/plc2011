@@ -94,9 +94,9 @@
 (define make-closure
   (lambda (id body env)
     (cond 
-     [(and (symbol? id) (atom? body)) 
+     [(and (variable? id) (atom? body)) 
       (closure-record id body env)]
-     [(and (symbol? id) (list? body)) 
+     [(and (variable? id) (list? body)) 
       (multiclosure-record (mk-var-list id) body env)]
      [(and (list? id) (atom? body)) 
       (multiclosure-record id (mk-exp-list body) env)]
@@ -108,11 +108,11 @@
 
 (define-datatype closure closure?
   [closure-record
-   (id symbol?)
+   (id variable?)
    (body expression?)
    (env list?)]
   [multiclosure-record
-   (ids (list-of symbol?))
+   (ids (list-of variable?))
    (body (list-of expression?))
    (env list?)])
 
@@ -122,8 +122,8 @@
 	(cases closure proc
 	       [closure-record (id body env)
 			       (car (reverse (eval-tree body (extend-env (list id) 
-							   (list arg) 
-							   env)
+									 (list arg) 
+									 env)
 					  )))]
 	       [multiclosure-record (ids body env)
 				    (car (reverse (eval-tree body 

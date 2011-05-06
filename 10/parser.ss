@@ -34,20 +34,22 @@
 
 (define mk-var-list
   (lambda (vars)
-    (map (lambda (v) 
+        (map (lambda (v) 
 	   (if (symbol? v) 
 	       v
-	       (eopl:error 'parse-expression "Invalid entry in var list ~s" v)))
+	       (eopl:error 'parse-expression "Invalid var list: ~s, ~s" vars v)))
 	 vars)
     ))
 
-;(define var-list->list
-;  (lambda (vars)
-;    (cases var-list vars
-;	   (null-var-node () '())
-;	   (improp-node (var) var)
-;	   (var-list-node (var next) (cons var (var-list->list next))))
-;    ))
+(define mk-lambda-var-list
+  (lambda (vars)
+    (map (lambda (v) 
+	   (if (symbol? v) 
+	       v
+	       (reference v)
+	 vars)
+    ))    
+
 (define (var-list->list vars) vars)
 
 (define mk-defs-list
@@ -68,18 +70,14 @@
 		     (defs-list->list next)))
 	   )))
 
-;(define exp-list->list
-;  (lambda (exprs)
-;    (cases exp-list exprs
-;	   (null-exp-node () '())
-;	   (exp-list-node (exp nxt) 
-;			  (cons (unparse-expression exp) (exp-list->list nxt)))
-;	   )))
-
 (define exp-list->list
   (lambda (exprs)
     (map unparse-expression exprs)
     ))
+
+(define variable? (lambda (x) (or (reference? x) (symbol? x))))
+
+(define variables? (list-of variable?))
 
 (define-datatype expression expression? 
   (null-exp )
@@ -88,10 +86,10 @@
   (lit-exp
    (val (lambda (x) #t)))
   (lambda-exp
-   (id symbol?)
+   (id variable?)
    (body (list-of expression?)))
   (lambda-exp-args
-   (ids (list-of symbol?))
+   (ids variables?)
    (body (list-of expression?)))
   (if-exp 
    (condition expression?)
@@ -148,6 +146,11 @@
   (var-list-node
    (var symbol?)
    (next var-list?))
+  )
+
+(define-datatype reference reference?
+  (ref
+   (target symbol?))
   )
 
 (define-datatype exp-list exp-list?
@@ -217,13 +220,17 @@
      [(atom? datum) (lit-exp datum)]
      [(pair? datum)
       (cond [(eqv? (car datum) 'quote) (lit-exp (cadr datum))]
+	    [(eqv? (car datum) 'ref) 
+	     (if (= (length datum) 2)
+		 (ref (cadr datum))
+		 (eopl:error 'parse-expression "Invalid reference expression: ~s" datum))]
 	    [(eqv? (car datum) 'lambda)
 	     (if (< (length datum) 3) (eopl:error 'parse-expression "Invalid lambda syntax ~s" datum))
 	     (cond [(symbol? (cadr datum))
 		    (lambda-exp (cadr datum)
 				(mk-exp-list (cddr datum)))]
 		   [(or (pair? (cadr datum)) (null? (cadr datum)))
-		    (lambda-exp-args (mk-var-list (cadr datum))
+		    (lambda-exp-args (mk-lambda-var-list (cadr datum))
 				     (mk-exp-list (cddr datum)))]
 		   
 		   [else (eopl:error 'parse-expression 
@@ -242,53 +249,53 @@
 		   [else (eopl:error 'parse-expression
 				     "Invalid number of statements for if: ~s" datum)])
 	     ]
-		 
-		 [(eqv? (car datum) 'cond)
-		   (syntax-expand (cond-exp (map parse-expression (make-let-vars (cdr datum))) (make-let-vals (cdr datum))))]
-		 [(eqv? (car datum) 'and)
-		   (syntax-expand (and-exp (map parse-expression (cdr datum))))]
-		 [(eqv? (car datum) 'or)
-		   (syntax-expand (or-exp (map parse-expression (cdr datum))))]
-		 [(eqv? (car datum) 'case)
-		  (if (or (null? (cdr datum)) (null? (cddr datum)))
-		      (eopl:error 'parse-expression "Incorrect case structure in ~s" datum)
-		      (syntax-expand (case-exp (parse-expression (cadr datum)) (map 
-										(lambda (x) 
-										  (if (list? x) 
-										      (map parse-expression x)
-										      (list (parse-expression x))))
-										(make-let-vars (cddr datum)))
-					       (make-let-vals (cddr datum))
-					       )))]
-	    ((eqv? (car datum) 'let)
-          (if (or (null? (cdr datum)) (null? (cddr datum)))
-              (eopl:error 'parse-expression "Invalid let structure ~s" datum)
-              (if (symbol? (cadr datum))
-                    (if (null? (cdddr datum))
-                        (eopl:error 'parse-expression "Invalid let structure ~s" datum)
-                        (if (good-let? (caddr datum))
-                            (syntax-expand (named-let-exp (cadr datum) (make-let-vars (caddr datum)) 
-                              (make-let-vals (caddr datum)) (parse-list (cdddr datum))))
-                            (eopl:error 'parse-expression "Bad named-let expression ~s" datum)))
-                    (if (good-let? (cadr datum))
-                        (syntax-expand (let-exp (make-let-vars (cadr datum)) (make-let-vals (cadr datum)) (parse-list (cddr datum))))
-                        (eopl:error 'parse-expression "Bad let expression ~s" datum)))))
-         ((eqv? (car datum) 'let*)
-          (if (or (null? (cdr datum)) (null? (cddr datum)))
-              (eopl:error 'parse-expression "Invalid let* structure ~s" datum)
-              (if (good-let? (cadr datum))
-                  (syntax-expand (let*-exp (make-let-vars (cadr datum)) (make-let-vals (cadr datum)) (parse-list (cddr datum))))
-                  (eopl:error 'parse-expression "Invalid let* structure ~s" datum))))
-         ((eqv? (car datum) 'letrec)
-          (if (or (null? (cdr datum)) (null? (cddr datum)))
-              (eopl:error 'parse-expression "Invalid letrec structure ~s" datum)
-              (if (good-let? (cadr datum))
-			    (letrec-exp (make-let-vars (cadr datum)) (make-let-vals (cadr datum)) (parse-list (cddr datum)))
-                  ;(let ((bodies (make-letrec-vals (cadr datum))))
-                  ;  (letrec-exp (make-let-vars (cadr datum)) (map cadadr (cadr datum)) bodies (parse-list (cddr datum))))
-                  (eopl:error 'parse-expression "Bad letrec expression ~s" datum))))
-				  
-				  
+	    
+	    [(eqv? (car datum) 'cond)
+	     (syntax-expand (cond-exp (map parse-expression (make-let-vars (cdr datum))) (make-let-vals (cdr datum))))]
+	    [(eqv? (car datum) 'and)
+	     (syntax-expand (and-exp (map parse-expression (cdr datum))))]
+	    [(eqv? (car datum) 'or)
+	     (syntax-expand (or-exp (map parse-expression (cdr datum))))]
+	    [(eqv? (car datum) 'case)
+	     (if (or (null? (cdr datum)) (null? (cddr datum)))
+		 (eopl:error 'parse-expression "Incorrect case structure in ~s" datum)
+		 (syntax-expand (case-exp (parse-expression (cadr datum)) (map 
+									   (lambda (x) 
+									     (if (list? x) 
+										 (map parse-expression x)
+										 (list (parse-expression x))))
+									   (make-let-vars (cddr datum)))
+					  (make-let-vals (cddr datum))
+					  )))]
+	    [(eqv? (car datum) 'let)
+	     (if (or (null? (cdr datum)) (null? (cddr datum)))
+		 (eopl:error 'parse-expression "Invalid let structure ~s" datum)
+		 (if (symbol? (cadr datum))
+		     (if (null? (cdddr datum))
+			 (eopl:error 'parse-expression "Invalid let structure ~s" datum)
+			 (if (good-let? (caddr datum))
+			     (syntax-expand (named-let-exp (cadr datum) (make-let-vars (caddr datum)) 
+							   (make-let-vals (caddr datum)) (parse-list (cdddr datum))))
+			     (eopl:error 'parse-expression "Bad named-let expression ~s" datum)))
+		     (if (good-let? (cadr datum))
+			 (syntax-expand (let-exp (make-let-vars (cadr datum)) (make-let-vals (cadr datum)) (parse-list (cddr datum))))
+			 (eopl:error 'parse-expression "Bad let expression ~s" datum)))))
+	    [(eqv? (car datum) 'let*)
+	     (if (or (null? (cdr datum)) (null? (cddr datum)))
+		 (eopl:error 'parse-expression "Invalid let* structure ~s" datum)
+		 (if (good-let? (cadr datum))
+		     (syntax-expand (let*-exp (make-let-vars (cadr datum)) (make-let-vals (cadr datum)) (parse-list (cddr datum))))
+		     (eopl:error 'parse-expression "Invalid let* structure ~s" datum))))
+	    [(eqv? (car datum) 'letrec)
+	     (if (or (null? (cdr datum)) (null? (cddr datum)))
+		 (eopl:error 'parse-expression "Invalid letrec structure ~s" datum)
+		 (if (good-let? (cadr datum))
+		     (letrec-exp (make-let-vars (cadr datum)) (make-let-vals (cadr datum)) (parse-list (cddr datum)))
+					;(let ((bodies (make-letrec-vals (cadr datum))))
+					;  (letrec-exp (make-let-vars (cadr datum)) (map cadadr (cadr datum)) bodies (parse-list (cddr datum))))
+		     (eopl:error 'parse-expression "Bad letrec expression ~s" datum))))
+	    
+	    
 	    [(eqv? (car datum) 'begin) (begin-exp (mk-exp-list (cdr datum)))]
 	    [(eqv? (car datum) 'while) (while-exp (parse-expression (cadr datum)) (mk-exp-list (cddr datum)))]
 	    [(eqv? (car datum) 'set!)
@@ -297,8 +304,8 @@
 	     (set-exp (cadr datum) (parse-expression (caddr datum)))]
 	    [else (app-exp (parse-expression (car datum)) (mk-exp-list (cdr datum)))]
 	    )]
-		   
-      [else (eopl:error 'parse-expression
+     
+     [else (eopl:error 'parse-expression
 		       "Invalid concrete syntax ~s" datum)])
     ))
 
