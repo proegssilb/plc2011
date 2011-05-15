@@ -35,7 +35,7 @@
   (lambda (sym)
     (let ([curr (assoc sym global-environment)])
       (if curr
-	  curr
+	  (cdr curr)
 	  (eopl:error 'apply-global-env "Var doesn't exist ~s" sym)
 	  ))
     ))
