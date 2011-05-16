@@ -140,6 +140,9 @@
   (while-exp
    (test expression?)
    (bodies (list-of expression?)))
+  (define-exp
+    (param symbol?)
+	(value expression?))
   )
 
 (define-datatype var-list var-list?
@@ -294,7 +297,8 @@
 	    [(eqv? (car datum) 'set!)
 	     (if (not (= (length datum) 3)) (eopl:error 'parse-expression 
 							"Incorrect number of items for set! ~s" datum))
-	     (set-exp (cadr datum) (parse-expression (caddr datum)))]
+	     (set-exp (cadr datum) (parse-expression (caddr datum)))]\
+		[(eqv? (car datum) 'define) (define-exp (cadr datum) (parse-expression (caddr datum)))]
 	    [else (app-exp (parse-expression (car datum)) (mk-exp-list (cdr datum)))]
 	    )]
 		   
