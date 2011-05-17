@@ -1,6 +1,8 @@
 ;;; David Bliss
 ;;; Interpreting parse trees routines
 
+(load "cont.ss")
+
 (define interpret
   (lambda (exp)
     (let* ([parse-tree (parse-expression exp)]
@@ -21,9 +23,12 @@
 			      (make-closure id body env)]
 		  [lambda-exp-args (ids body)
 				   (make-closure ids body env)]
-		  [if-exp (condition body) (eval-if condition body env)]
+		  [if-exp (condition body) ;(eval-if condition body env)]
+			  (let ([ifcnt (if-cont body '() cont env)])
+			    (apply-cont (eval-cont condition ifcnt env)))]
 		  [if-else-exp (condition t-case f-case)
-			       (eval-if-else condition t-case f-case env)]
+			       (let ([ifcnt (if-cont t-case f-case cont env)])
+				 (apply-cont (eval-cont condition ifcnt env)))]
 		  [let-exp (syms exps bodies) '()]
 		  [let*-exp (params values bodies) '()]
 		  [letrec-exp (proc-names params values bodies) '()]
