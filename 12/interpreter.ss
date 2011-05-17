@@ -35,15 +35,7 @@
 		  [named-let-exp (name defs body) '()]
 		  [set-exp (var val) '()]
 		  [begin-exp (exps)
-			     (cases exp-list exps
-				    [null-exp-node () '()]
-				    [exp-list-node (val next) 
-						   (cases exp-list next
-							  [null-exp-node () (eval-tree val env)]
-							  [exp-list-node (v2 n2)  (begin
-										    (eval-tree val env) 
-										    (eval-tree (begin-exp next) env))]
-							  )])]
+			    (apply-cont (begin-cont exps cont env) '())]
 		  [app-exp (operator operand)
 			   (apply-cont (eval-cont (cons operator operand) 
 						  (proc-cont cont)) 
@@ -53,18 +45,7 @@
 		  [or-exp (tests)
 			  (apply-cont (or-exp tests cont env) #f)]
 		  [while-exp (test exps)
-			     (letrec ([doBodies (lambda (exprs)
-						  (if (null? exprs)
-						      '()
-						      (begin (eval-tree (car exprs) env) (doBodies (cdr exprs)))
-						      ))]
-				      [helper (lambda ()
-						(if (eval-tree test env)
-						    (begin (doBodies exps)
-							   (helper)
-						    )))])
-			       (helper)
-			       )]
+			     (apply-cont (while-test-cont test exps cont env))]
 		  [else (eopl:error 'eval-tree "Invalid case: ~s" exp)]
 		  )]
 	  ;[(exp-list? exp)

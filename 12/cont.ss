@@ -17,6 +17,20 @@
    (exps (list-of expression?))
    (cont continuation?)
    (env pair?))
+  (begin-cont
+   (exps (list-of expression?))
+   (cont continuation?)
+   (env pair?))
+  (while-body-cont
+   (test expression?)
+   (bodies (list-of expression?))
+   (cont continuation?)
+   (env pair?))
+  (while-test-cont
+   (test expression?)
+   (bodies (list-of expression?))
+   (cont continuation?)
+   (env pair?))
   (if-cont
    (true-exp expression?)
    (false-exp expression?)
@@ -49,6 +63,21 @@
 					      (car exps)
 					      (and-cont (cdr exps) next-cont env)
 					      env)))]
+	   [begin-cont (exps next-cont env)
+		       (if (null? exps)
+			   (apply-cont next-cont val)
+			   (eval-tree (car exps) 
+				      env
+				      (begin-cont (cdr exps) next-cont env))
+			   )]
+	   [while-body-cont (test exps next-cont env)
+			    (if val
+				(eval-cont exps 
+					   (while-test-cont test exps next-cont env)
+					   env)
+				(apply-cont next-cont val))]
+	   [while-test-cont (test exps next-cont env)
+			    (eval-tree test env (while-body-cont test exps next-cont env))]
 	   [if-cont (true-exp false-exp next-cont env)
 		    (if val
 			(eval-expression true-exp next-cont env)
