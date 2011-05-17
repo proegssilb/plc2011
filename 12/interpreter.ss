@@ -45,26 +45,13 @@
 										    (eval-tree (begin-exp next) env))]
 							  )])]
 		  [app-exp (operator operand)
-			   (let ([procedure (eval-tree operator env)]
-				 [arg (eval-tree operand env)])
-			     (apply-proc procedure arg env))]
+			   (apply-cont (eval-cont (cons operator operand) 
+						  (proc-cont cont)) 
+				       '())]
 		  [and-exp (tests)
-			   (cond
-			    [(null? tests) #t]
-			    [(atom? tests) (eopl:error 'eval-tree "Parse error in and: ~s" tests)]
-			    [(= (length tests) 1) (eval-tree (car tests) env)]
-			    [(not (eval-tree (car tests) env)) #f]
-			    [else (eval-tree (and-exp (cdr tests)) env)])]
+			   (apply-cont (and-exp tests cont env) #t)]
 		  [or-exp (tests)
-			  (cond
-			   [(null? tests) #f]
-			   [(atom? tests) (eopl:error 'eval-tree "Parse error in or: ~s" tests)]
-			   [(= (length tests) 1) (eval-tree (car tests) env)]
-			   [else (let ([t1 (eval-tree (car tests) env)])
-				   (if t1
-				       t1
-				       (eval-tree (or-exp (cdr tests)) env)
-				       ))])]
+			  (apply-cont (or-exp tests cont env) #f)]
 		  [while-exp (test exps)
 			     (letrec ([doBodies (lambda (exprs)
 						  (if (null? exprs)
