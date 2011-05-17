@@ -37,15 +37,18 @@
 		  [begin-exp (exps)
 			    (apply-cont (begin-cont exps cont env) '())]
 		  [app-exp (operator operand)
-			   (apply-cont (eval-cont (cons operator operand) 
-						  (proc-cont cont)) 
-				       '())]
+			   (eval-tree operator 
+				      env 
+				      (eval-cont operand (proc-cont cont) env)
+				      )]
 		  [and-exp (tests)
 			   (apply-cont (and-exp tests cont env) #t)]
 		  [or-exp (tests)
 			  (apply-cont (or-exp tests cont env) #f)]
 		  [while-exp (test exps)
-			     (apply-cont (while-test-cont test exps cont env))]
+			     (apply-cont (while-test-cont test exps cont env) #f)]
+		  [call-cc-exp (func)
+			       (eval-tree func env (call-cc-cont cont env))] 
 		  [else (eopl:error 'eval-tree "Invalid case: ~s" exp)]
 		  )]
 	  ;[(exp-list? exp)

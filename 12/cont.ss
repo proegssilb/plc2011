@@ -31,6 +31,9 @@
    (bodies (list-of expression?))
    (cont continuation?)
    (env pair?))
+  (call-cc-cont
+   (cont continuation?) ;;; The procedure to call is passed in via val.
+   (env pair?))
   (if-cont
    (true-exp expression?)
    (false-exp expression?)
@@ -78,6 +81,8 @@
 				(apply-cont next-cont val))]
 	   [while-test-cont (test exps next-cont env)
 			    (eval-tree test env (while-body-cont test exps next-cont env))]
+	   [call-cc-cont (cont-to-pass env)
+			 (apply-proc val cont-to-pass]
 	   [if-cont (true-exp false-exp next-cont env)
 		    (if val
 			(eval-expression true-exp next-cont env)
